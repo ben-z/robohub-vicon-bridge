@@ -1,3 +1,8 @@
+This is a modified version of vicon_bridge which is preconfigure for use in Robohub.
+
+
+Original README
+
 This is a driver providing data from VICON motion capture systems. It is based on the vicon_mocap package from the starmac stacks. 
 Additionally, it can handle multiple subjects / segments and allows to calibrate an origin of the vehicle(s) as this is somehow tedious with the VICON Tracker.
 
