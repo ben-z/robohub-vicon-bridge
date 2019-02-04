@@ -2,7 +2,7 @@
 	<node pkg="vicon_bridge" type="vicon_bridge" name="vicon" output="screen">
 		<param name="stream_mode" value="ServerPush" type="str" />
 		<!--param name="datastream_hostport" value="192.168.0.13:801" type="str" /-->
-		<param name="datastream_hostport" value="192.168.1.208:801" type="str" />
+		<param name="datastream_hostport" value="129.97.71.5:801" type="str" />
 		<param name="tf_ref_frame_id" value="/vicon_world" type="str" />
 		</node>
 </launch>
