@@ -163,6 +163,7 @@ private:
   string host_name_;
   string tf_ref_frame_id_;
   string tracked_frame_suffix_;
+  double max_pub_freq_;
   // Publisher
   ros::Publisher marker_pub_;
   // TF Broadcaster
@@ -195,6 +196,8 @@ private:
 
   Client vicon_client_;
 
+  ros::Time last_pub_time_;
+
 public:
   void startGrabbing()
   {
@@ -218,7 +221,7 @@ public:
     stream_mode_("ClientPull"),
         host_name_(""), tf_ref_frame_id_("world"), tracked_frame_suffix_("vicon"),
         lastFrameNumber(0), frameCount(0), droppedFrameCount(0), frame_datum(0), n_markers(0), n_unlabeled_markers(0),
-        marker_data_enabled(false), unlabeled_marker_data_enabled(false), grab_frames_(false)
+        marker_data_enabled(false), unlabeled_marker_data_enabled(false), grab_frames_(false), max_pub_freq_(1000.0)
   {
     // Diagnostics
     diag_updater.add("ViconReceiver Status", this, &ViconReceiver::diagnostics);
@@ -232,6 +235,7 @@ public:
     nh_priv.param("broadcast_transform", broadcast_tf_, true);
     nh_priv.param("publish_transform", publish_tf_, true);
     nh_priv.param("publish_markers", publish_markers_, true);
+    nh_priv.param("max_publish_frequency", max_pub_freq_, max_pub_freq_);
     if (init_vicon() == false){
       ROS_ERROR("Error while connecting to Vicon. Exiting now.");
       return;
@@ -381,10 +385,12 @@ private:
 
     while (ros::ok() && grab_frames_)
     {
-      while (vicon_client_.GetFrame().Result != Result::Success && ros::ok())
+      auto get_frame_result = vicon_client_.GetFrame().Result;
+      while (get_frame_result != Result::Success && ros::ok())
       {
-        ROS_INFO("getFrame returned false");
+        ROS_INFO("getFrame returned false with result %s", Adapt(get_frame_result).c_str());
         d.sleep();
+        get_frame_result = vicon_client_.GetFrame().Result;
       }
       now_time = ros::Time::now();
 
@@ -437,14 +443,21 @@ private:
       freq_status_.tick();
       ros::Duration vicon_latency(vicon_client_.GetLatencyTotal().Total);
 
-      if(publish_tf_ || broadcast_tf_)
-      {
-        process_subjects(now_time - vicon_latency);
-      }
+      ros::Duration time_since_last_publish = now_time - last_pub_time_;
 
-      if(publish_markers_)
+      if (time_since_last_publish > ros::Duration(1.0 / max_pub_freq_))
       {
-        process_markers(now_time - vicon_latency, lastFrameNumber);
+        if(publish_tf_ || broadcast_tf_)
+        {
+          process_subjects(now_time - vicon_latency);
+        }
+
+        if(publish_markers_)
+        {
+          process_markers(now_time - vicon_latency, lastFrameNumber);
+        }
+
+        last_pub_time_ = now_time;
       }
 
       lastTime = now_time;
