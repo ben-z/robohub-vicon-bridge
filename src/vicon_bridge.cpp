@@ -43,6 +43,7 @@
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
 #include <vicon_bridge/viconGrabPose.h>
 #include <vicon_bridge/Markers.h>
 #include <vicon_bridge/Marker.h>
@@ -134,7 +135,8 @@ string Adapt(const Result::Enum i_result)
 class SegmentPublisher
 {
 public:
-  ros::Publisher pub;
+  ros::Publisher pub_tf;
+  ros::Publisher pub_odom;
   bool is_ready;
   tf::Transform calibration_pose;
   bool calibrated;
@@ -145,6 +147,15 @@ public:
   }
   ;
 };
+
+void transformStampedToOdometry(const geometry_msgs::TransformStamped& transform_stamped, nav_msgs::Odometry& odom)
+{
+  odom.header = transform_stamped.header;
+  odom.pose.pose.position.x = transform_stamped.transform.translation.x;
+  odom.pose.pose.position.y = transform_stamped.transform.translation.y;
+  odom.pose.pose.position.z = transform_stamped.transform.translation.z;
+  odom.pose.pose.orientation = transform_stamped.transform.rotation;
+}
 
 typedef map<string, SegmentPublisher> SegmentMap;
 
@@ -341,8 +352,8 @@ private:
 
     if(publish_tf_)
     {
-      spub.pub = nh.advertise<geometry_msgs::TransformStamped>(tracked_frame_suffix_ + "/" + subject_name + "/"
-                                                                                                            + segment_name, 10);
+      spub.pub_tf = nh.advertise<geometry_msgs::TransformStamped>(tracked_frame_suffix_ + "/" + subject_name + "/" + segment_name, 10);
+      spub.pub_odom = nh.advertise<nav_msgs::Odometry>(tracked_frame_suffix_ + "/" + subject_name + "/" + segment_name + "/odom", 10);
     }
     // try to get zero pose from parameter server
     string param_suffix(subject_name + "/" + segment_name + "/zero_pose/");
@@ -473,6 +484,7 @@ private:
     tf::Transform transform;
     std::vector<tf::StampedTransform, std::allocator<tf::StampedTransform> > transforms;
     geometry_msgs::TransformStampedPtr pose_msg(new geometry_msgs::TransformStamped);
+    nav_msgs::OdometryPtr odom_msg(new nav_msgs::Odometry);
     static unsigned int cnt = 0;
 
     for (unsigned int i_subjects = 0; i_subjects < n_subjects; i_subjects++)
@@ -520,7 +532,9 @@ private:
                   if(publish_tf_)
                   {
                     tf::transformStampedTFToMsg(transforms.back(), *pose_msg);
-                    seg.pub.publish(pose_msg);
+                    seg.pub_tf.publish(pose_msg);
+                    transformStampedToOdometry(*pose_msg, *odom_msg);
+                    seg.pub_odom.publish(odom_msg);
                   }
                 }
               }

@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
     dynamic_reconfigure
     geometry_msgs
+    nav_msgs
     roscpp
     tf
     diagnostic_updater
@@ -36,6 +37,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(CATKIN_DEPENDS 
     dynamic_reconfigure
     geometry_msgs
+    nav_msgs
     message_runtime 
     roscpp 
 )
