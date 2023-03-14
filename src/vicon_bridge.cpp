@@ -62,6 +62,8 @@ using std::map;
 
 using namespace ViconDataStreamSDK::CPP;
 
+constexpr unsigned VICON_GET_FRAME_FAILURE_TOLERANCE = 0; // number of GetFrame failures to tolerate before reconnecting
+
 string Adapt(const Direction::Enum i_Direction)
 {
   switch (i_Direction)
@@ -401,7 +403,7 @@ private:
       while (get_frame_result != Result::Success && ros::ok())
       {
         ++attempts;
-        if (attempts > 100) {
+        if (attempts > VICON_GET_FRAME_FAILURE_TOLERANCE) {
           ROS_WARN("getFrame returned false with result %s (attempt %d). Restarting vicon...", Adapt(get_frame_result).c_str(), attempts);
 
           attempts = 0;
@@ -415,7 +417,7 @@ private:
           }
           grab_frames_ = true;
         } else {
-          ROS_INFO_THROTTLE(1.0, "getFrame returned false with result %s (attempt %d)", Adapt(get_frame_result).c_str(), attempts);
+          ROS_INFO("getFrame returned false with result %s (attempt %d)", Adapt(get_frame_result).c_str(), attempts);
           d.sleep();
         }
         get_frame_result = vicon_client_.GetFrame().Result;
