@@ -396,13 +396,32 @@ private:
 
     while (ros::ok() && grab_frames_)
     {
+      unsigned attempts = 0;
       auto get_frame_result = vicon_client_.GetFrame().Result;
       while (get_frame_result != Result::Success && ros::ok())
       {
-        ROS_INFO("getFrame returned false with result %s", Adapt(get_frame_result).c_str());
-        d.sleep();
+        ++attempts;
+        if (attempts > 100) {
+          ROS_WARN("getFrame returned false with result %s (attempt %d). Restarting vicon...", Adapt(get_frame_result).c_str(), attempts);
+
+          attempts = 0;
+          if (shutdown_vicon() == false){
+            ROS_ERROR("Error while shutting down Vicon. Exiting now...");
+            return;
+          }
+          if (init_vicon() == false){
+            ROS_ERROR("Error initializing vicon again. Exiting now...");
+            return;
+          }
+          grab_frames_ = true;
+        } else {
+          ROS_INFO_THROTTLE(1.0, "getFrame returned false with result %s (attempt %d)", Adapt(get_frame_result).c_str(), attempts);
+          d.sleep();
+        }
         get_frame_result = vicon_client_.GetFrame().Result;
       }
+
+      attempts = 0;
       now_time = ros::Time::now();
 
       bool was_new_frame = process_frame();
