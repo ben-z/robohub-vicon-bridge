@@ -302,14 +302,14 @@ private:
     while (!vicon_client_.IsConnected().Connected)
     {
       vicon_client_.Connect(host_name_);
-      ROS_INFO(".");
+      ROS_INFO_STREAM("Still trying to connect to " << host_name_ << " ...");
       d.sleep();
       ros::spinOnce();
       if (!ros::ok())
         return false;
     }
     ROS_ASSERT(vicon_client_.IsConnected().Connected);
-    ROS_INFO_STREAM("... connected!");
+    ROS_INFO_STREAM("Connected to " << host_name_ << ".");
 
     // ClientPullPrefetch doesn't make much sense here, since we're only forwarding the data
     if (stream_mode_ == "ServerPush")
@@ -383,8 +383,7 @@ private:
     }
 
     spub.is_ready = true;
-    ROS_INFO("... done, advertised as \" %s/%s/%s\" ", tracked_frame_suffix_.c_str(), subject_name.c_str(), segment_name.c_str());
-
+    ROS_INFO("Done creating new object. Advertised as \"%s/%s/%s\".", tracked_frame_suffix_.c_str(), subject_name.c_str(), segment_name.c_str());
   }
 
   void createSegment(const string subject_name, const string segment_name)
@@ -437,10 +436,11 @@ private:
   {
     ROS_INFO_STREAM("stopping grabbing thread");
     stopGrabbing();
-    ROS_INFO_STREAM("Disconnecting from Vicon DataStream SDK");
+    ROS_INFO_STREAM("Disconnecting from Vicon DataStream SDK...");
     vicon_client_.Disconnect();
     ROS_ASSERT(!vicon_client_.IsConnected().Connected);
-    ROS_INFO_STREAM("... disconnected.");
+    ROS_INFO_STREAM("Disconnected from Vicon DataStream SDK.");
+
     return true;
   }
 
